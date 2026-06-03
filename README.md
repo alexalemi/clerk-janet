@@ -28,24 +28,51 @@ the defines, the value `5`. Edit, save, watch it update.
 
 ## Install
 
+Two options.
+
+**As a `clerk-janet` binary on your `PATH`** (recommended):
+
 ```sh
 git clone https://github.com/alexalemi/clerk-janet.git
 cd clerk-janet
-# spork is the only dependency
-jpm --local deps
+sudo jpm install
 ```
 
-The `--local` install puts deps in `./jpm_tree`, so the project
-stays self-contained.
+`jpm install` builds a self-contained ELF that bundles `main.janet`
+plus all transitive imports and the native `spork/json.so`, then
+drops it into the install prefix (typically `/usr/local/bin/`).
+Spork is fetched automatically from the `:dependencies` list in
+`project.janet`.
+
+**As a checkout you run with `janet`** (good for hacking on
+clerk-janet itself):
+
+```sh
+git clone https://github.com/alexalemi/clerk-janet.git
+cd clerk-janet
+jpm --local deps   # puts spork in ./jpm_tree, no sudo needed
+```
 
 ## Use
 
+If you installed the binary:
+
 ```sh
 # Live server on a single file (default port 7777)
-janet main.janet examples/tour.janet
+clerk-janet examples/tour.janet
 
 # Directory mode: watch every .janet under a tree. Saving any
 # of them switches the live view to that file.
+clerk-janet examples/
+
+# Pick a different port
+clerk-janet examples/tour.janet --port 8000
+```
+
+From a checkout, replace `clerk-janet` with `janet main.janet`:
+
+```sh
+janet main.janet examples/tour.janet
 janet main.janet examples/
 
 # Build a static HTML snapshot (no live server)

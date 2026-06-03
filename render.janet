@@ -49,12 +49,25 @@
         (array/push stash (string "<a href=\"" url "\">" text "</a>"))
         (string "\0LINK" (- (length stash) 1) "\0"))
       s))
-  # Bare URLs — http(s)://... up to whitespace or terminator.
+  # Bare URLs — http(s)://... up to whitespace or terminator. Trailing
+  # sentence punctuation (.,;:!?) is stripped off and emitted after the
+  # </a> so prose like "see https://x.com." doesn't capture the period.
   (def s
     (peg/replace-all
       ~(capture (* "http" (? "s") "://"
                    (some (if-not (set " \t\n\r<>\"()") 1))))
-      (fn [_ url] (string "<a href=\"" url "\">" url "</a>"))
+      (fn [_ url]
+        (def trail-len
+          (let [n (length url)]
+            (var i n)
+            (while (and (> i 0)
+                        (string/find (string/from-bytes (get url (- i 1)))
+                                     ".,;:!?"))
+              (-- i))
+            (- n i)))
+        (def clean (string/slice url 0 (- (length url) trail-len)))
+        (def trail (string/slice url (- (length url) trail-len)))
+        (string "<a href=\"" clean "\">" clean "</a>" trail))
       s))
   # Bold and italic
   (def s

@@ -79,6 +79,21 @@
 (def html (viewer/render-value :smoke-marker))
 (assert-eq html "<span>SMOKE</span>" "custom viewer registered + used")
 
+# --- Markdown link rendering (regression: nested <a> double-wrap) ---
+
+(write-source ``
+# Visit [the docs](https://example.com/x) and also https://example.com/y.
+``)
+
+(def link-html ((ev/eval-notebook tmp) 0))
+(def rendered (render/render-cell link-html))
+(assert-eq (string/find "<a href=\"<a " rendered) nil
+           "explicit [text](url) link not double-wrapped by autolink pass")
+(assert-eq (truthy? (string/find "<a href=\"https://example.com/x\">the docs</a>" rendered)) true
+           "explicit link renders cleanly")
+(assert-eq (truthy? (string/find "<a href=\"https://example.com/y\">https://example.com/y</a>" rendered)) true
+           "bare URL on same line still autolinks")
+
 # --- Server boot ----------------------------------------------------
 
 (def stop (m/clerk-serve tmp :port 7889))
