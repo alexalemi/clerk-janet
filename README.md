@@ -1,7 +1,9 @@
 # clerk-janet
 
 Live, browser-rendered notebooks for [Janet](https://janet-lang.org/)
-— a port of [clerk-racket](https://github.com/alexalemi/clerk-racket).
+— a port of [clerk-racket](https://github.com/alexalemi/clerk-racket),
+which in turn carries forward the design of nextjournal's original
+[Clerk](https://github.com/nextjournal/clerk) for Clojure.
 
 A notebook is an **ordinary Janet file**. `#`-line comments become
 Markdown, code cells get syntax-highlighted, values render inline,
