@@ -62,6 +62,56 @@
           background:#eae5d8;color:#7a6a4a;border-radius:3px}
   #status.live{background:#d6e6d6;color:#2c4a2c}
   #status.dead{background:#f0c8c0;color:#6a1f1f}
+  /* Markdown list spacing */
+  .clerk-md .clerk-md-body ul,
+  .clerk-md .clerk-md-body ol{margin:.3em 0 .3em 1.5em;padding:0}
+  .clerk-md .clerk-md-body li{margin:.1em 0}
+  /* Syntax highlighting palette (Sarabander / Google-Code-Prettify) */
+  pre.clerk-source .pln{color:#606060}
+  pre.clerk-source .kwd{color:#4070a0}
+  pre.clerk-source .lit{color:#509040}
+  pre.clerk-source .str{color:#985098}
+  pre.clerk-source .com{color:#b08050;font-style:italic}
+  pre.clerk-source .opn,pre.clerk-source .clo{color:#989898}
+  pre.clerk-source .pun{color:#909020}
+  pre.clerk-source .atn{color:#606}
+  pre.clerk-source .err{color:#c06050}
+  ``)
+
+(def math-tags
+  ``
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  ``)
+
+(def math-render-script
+  ``
+  <script>
+    window.clerkRenderMath = function(root) {
+      if (typeof renderMathInElement !== 'function') return;
+      var els = (root || document).querySelectorAll('.clerk-md .clerk-md-body');
+      els.forEach(function(el) {
+        renderMathInElement(el, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\[', right: '\\]', display: true },
+            { left: '\\(', right: '\\)', display: false }
+          ],
+          throwOnError: false
+        });
+      });
+    };
+    document.addEventListener('DOMContentLoaded', function() {
+      var poll = setInterval(function() {
+        if (typeof renderMathInElement === 'function') {
+          clearInterval(poll);
+          window.clerkRenderMath();
+        }
+      }, 50);
+    });
+  </script>
   ``)
 
 (def font-link-tags
@@ -75,7 +125,10 @@
   (string
     `<!doctype html><html><head><meta charset="utf-8"><title>` title `</title>`
     font-link-tags
-    `<style>` shell-css `</style></head><body>`
+    math-tags
+    `<style>` shell-css `</style>`
+    math-render-script
+    `</head><body>`
     `<div id="status">connecting…</div>`
     `<main id="cells"></main>`
     `<script src="/client.js"></script>`
@@ -85,7 +138,10 @@
   (string
     `<!doctype html><html><head><meta charset="utf-8"><title>` title `</title>`
     font-link-tags
-    `<style>` shell-css `</style></head><body>`
+    math-tags
+    `<style>` shell-css `</style>`
+    math-render-script
+    `</head><body>`
     `<main id="cells">` body `</main>`
     `</body></html>`))
 
@@ -106,6 +162,9 @@
       for (var i = 0; i < msg.cells.length; i++) {
         var nodes = parseFragment(msg.cells[i].html);
         while (nodes.length) cellsEl.appendChild(nodes[0]);
+      }
+      if (typeof window.clerkRenderMath === "function") {
+        window.clerkRenderMath();
       }
     }
     function applyMessage(msg) {
