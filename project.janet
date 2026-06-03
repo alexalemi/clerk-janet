@@ -7,8 +7,6 @@
   :license "MIT"
   :dependencies ["https://github.com/janet-lang/spork.git"])
 
-# `jpm run serve <file>` — dev entry point.
 (declare-executable
   :name "clerk-janet"
-  :entry "main.janet"
-  :install false)
+  :entry "main.janet")

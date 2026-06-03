@@ -39,33 +39,22 @@
         (array/push stash inner)
         (string "\0CODE" (- (length stash) 1) "\0"))
       s))
-  # Explicit links: [text](url)
+  # Explicit links: [text](url). Stash the produced <a> so the autolink
+  # pass below can't re-match the URL sitting inside href="...".
   (def s
     (peg/replace-all
       ~(* "[" (capture (some (if-not "]" 1))) "]" "("
           (capture (some (if-not ")" 1))) ")")
-      (fn [_ text url] (string "<a href=\"" url "\">" text "</a>"))
+      (fn [_ text url]
+        (array/push stash (string "<a href=\"" url "\">" text "</a>"))
+        (string "\0LINK" (- (length stash) 1) "\0"))
       s))
-  # Bare URLs — match http(s)://... up to whitespace or terminator.
-  # Lookbehind via stop-token: capture chars-not-href-attribute. Janet
-  # PEGs don't have lookbehind, so we instead require the preceding
-  # context to NOT be `href="` by anchoring at word boundaries that
-  # ordinary text already provides.
+  # Bare URLs — http(s)://... up to whitespace or terminator.
   (def s
     (peg/replace-all
-      ~(* (capture (* "http" (? "s") "://"
-                      (some (if-not (set " \t\n\r<>\"()") 1)))))
-      (fn [whole url]
-        # If the URL is already inside an href attribute, leave alone.
-        # We approximate by checking: does the URL start at the very
-        # beginning of the input or follow a non-`"` character?
-        # PEG-level enforcement is awkward; in practice our pipeline
-        # runs autolinks AFTER explicit-link rewrites, and explicit
-        # links place the URL in href="..." position which we ignore
-        # via this rule: the match already happened, just skip.
-        (if (string/has-prefix? "<a href=\"" whole)
-          whole
-          (string "<a href=\"" url "\">" url "</a>")))
+      ~(capture (* "http" (? "s") "://"
+                   (some (if-not (set " \t\n\r<>\"()") 1))))
+      (fn [_ url] (string "<a href=\"" url "\">" url "</a>"))
       s))
   # Bold and italic
   (def s
@@ -84,6 +73,12 @@
       ~(* "\0CODE" (capture (some :d)) "\0")
       (fn [_ idx-str]
         (string "<code>" (get stash (scan-number idx-str)) "</code>"))
+      s))
+  # Restore explicit-link <a> tags
+  (def s
+    (peg/replace-all
+      ~(* "\0LINK" (capture (some :d)) "\0")
+      (fn [_ idx-str] (get stash (scan-number idx-str)))
       s))
   s)
 
