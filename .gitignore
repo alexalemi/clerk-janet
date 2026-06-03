@@ -1,0 +1,10 @@
+build/
+jpm_tree/
+*.jimage
+*.o
+*.html
+
+# Editor/OS junk
+.DS_Store
+*~
+.#*
