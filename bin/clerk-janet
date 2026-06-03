@@ -1,19 +1,24 @@
 #!/usr/bin/env janet
-# `clerk-janet <file-or-dir>` — small launcher that adds the project
-# directory to JANET_PATH so internal imports resolve, then delegates
-# to main.janet.
+# `clerk-janet <file-or-dir> [--port N]` — launcher that resolves the
+# project directory, adds it to JANET_PATH so internal `./mod`-style
+# imports work from any cwd, and explicitly invokes main.
 
 (def script-path (dyn :current-file))
 (def script-dir
   (let [parts (string/split "/" script-path)]
     (string/join (slice parts 0 -2) "/")))
 (def project-dir
-  # bin/ is one level down from the project root.
+  # bin/ is one level below the project root.
   (let [parts (string/split "/" script-dir)]
     (string/join (slice parts 0 -2) "/")))
 
-# Add the project root to module search paths so `(import ./main)`
-# style relative imports work from any cwd.
-(setdyn :syspath (string project-dir ":" (or (dyn :syspath) "")))
-
-(dofile (string project-dir "/main.janet") :exit true)
+# Re-exec janet with the project as cwd so relative imports in
+# main.janet resolve. Cleaner than rewriting :syspath and dofile-ing
+# manually, since `(import ./eval)` etc. resolve from main.janet's
+# directory regardless.
+(os/cd project-dir)
+(def env (dofile "main.janet"))
+(def main-fn (get-in env ['main :value]))
+(unless main-fn
+  (eprint "clerk-janet: main.janet does not define `main`") (os/exit 1))
+(main-fn ;(dyn :args))

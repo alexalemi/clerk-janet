@@ -73,10 +73,43 @@
     (stop-watch)
     ((srv :stop))))
 
+(defn- parse-args [argv]
+  "Very small flag parser: --port N. Returns [path port]."
+  (var port 7777)
+  (var path nil)
+  (def args (drop 1 argv))
+  (var i 0)
+  (def n (length args))
+  (while (< i n)
+    (def a (get args i))
+    (cond
+      (= a "--port")
+      (do (set port (scan-number (get args (+ i 1))))
+          (+= i 2))
+      (set path a)
+      (++ i)))
+  [path port])
+
+(defn- block-forever []
+  "Wait for either an enter on stdin (interactive use) or just sit
+  forever (non-interactive — e.g., launched in the background). We
+  used to call `(file/read stdin :line)` unconditionally, but when
+  stdin isn't a TTY that returns nil immediately and the server
+  shuts itself down before any clients can connect."
+  (def isatty?
+    (try (os/isatty stdin) ([_] true)))
+  (cond
+    isatty?
+    (do (eprint "press enter to stop.")
+        (file/read stdin :line))
+    # No TTY: sleep until process is killed externally.
+    (forever (ev/sleep 3600))))
+
 (defn main [& argv]
-  (def file (or (get argv 1)
-                (do (eprint "usage: clerk-janet <file-or-dir>") (os/exit 1))))
-  (def stop (clerk-serve file))
-  (eprint "press enter to stop.")
-  (file/read stdin :line)
+  (def [path port] (parse-args argv))
+  (unless path
+    (eprint "usage: clerk-janet <file-or-dir> [--port N]")
+    (os/exit 1))
+  (def stop (clerk-serve path :port port))
+  (block-forever)
   (stop))
