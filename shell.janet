@@ -76,6 +76,15 @@
   pre.clerk-source .pun{color:#909020}
   pre.clerk-source .atn{color:#606}
   pre.clerk-source .err{color:#c06050}
+  /* Tables (built-in :table viewer output) */
+  table.clerk-table{border-collapse:collapse;margin:.4em 0;
+                    font:13px/1.4 ui-monospace,monospace}
+  table.clerk-table th,table.clerk-table td{
+    border:1px solid #d0c8b8;padding:.2em .55em;text-align:left}
+  table.clerk-table th{background:#efe9d8;font-weight:normal;color:#5a4a2a}
+  /* Image / HTML viewer container */
+  .clerk-image{margin:.4em 0}
+  .clerk-image img,.clerk-image svg{max-width:100%;display:block}
   ``)
 
 (def math-tags

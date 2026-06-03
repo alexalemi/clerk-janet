@@ -1,0 +1,19 @@
+#!/usr/bin/env janet
+# `clerk-janet <file-or-dir>` — small launcher that adds the project
+# directory to JANET_PATH so internal imports resolve, then delegates
+# to main.janet.
+
+(def script-path (dyn :current-file))
+(def script-dir
+  (let [parts (string/split "/" script-path)]
+    (string/join (slice parts 0 -2) "/")))
+(def project-dir
+  # bin/ is one level down from the project root.
+  (let [parts (string/split "/" script-dir)]
+    (string/join (slice parts 0 -2) "/")))
+
+# Add the project root to module search paths so `(import ./main)`
+# style relative imports work from any cwd.
+(setdyn :syspath (string project-dir ":" (or (dyn :syspath) "")))
+
+(dofile (string project-dir "/main.janet") :exit true)

@@ -2,6 +2,7 @@
 
 (import ./cell)
 (import ./highlight)
+(import ./viewer)
 
 (defn- html-escape [s]
   (def s (string s))
@@ -149,16 +150,8 @@
 
 # --- Value rendering -------------------------------------------------
 
-(defn- render-value [v]
-  (cond
-    (nil? v) ""
-    (function? v)
-    (string "<pre class=\"clerk-value\">"
-            (html-escape (string/format "%q" v))
-            "</pre>")
-    (string "<pre class=\"clerk-value\">"
-            (html-escape (pp v))
-            "</pre>")))
+(defn- render-value [v &opt viewer-name]
+  (viewer/render-value v viewer-name))
 
 (defn- render-source [c]
   (if (cell/cell-hidden-code? c)
@@ -181,11 +174,14 @@
 
 (defn- render-value-block [r]
   (def c (r :cell))
+  (def viewer-name
+    (when-let [n (cell/cell-viewer-name c)]
+      (keyword n)))
   (cond
     (r :error)
     (string "<pre class=\"clerk-error\">" (html-escape (r :error)) "</pre>")
     (cell/cell-hidden-result? c) ""
-    (render-value (r :value))))
+    (render-value (r :value) viewer-name)))
 
 (defn render-cell [r]
   (def c (r :cell))
