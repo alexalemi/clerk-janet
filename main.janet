@@ -91,25 +91,28 @@
   [path port])
 
 (defn- block-forever []
-  "Wait for either an enter on stdin (interactive use) or just sit
-  forever (non-interactive — e.g., launched in the background). We
-  used to call `(file/read stdin :line)` unconditionally, but when
-  stdin isn't a TTY that returns nil immediately and the server
-  shuts itself down before any clients can connect."
-  (def isatty?
-    (try (os/isatty stdin) ([_] true)))
-  (cond
-    isatty?
-    (do (eprint "press enter to stop.")
-        (file/read stdin :line))
-    # No TTY: sleep until process is killed externally.
-    (forever (ev/sleep 3600))))
+  "Sit on the event loop forever. Ctrl-C exits via SIGINT; the previous
+  `(file/read stdin :line)` approach was brittle — *anything* that
+  EOF'd stdin (shell backgrounding, terminal close, pane drop, even an
+  accidental Ctrl-D) would silently shut the server down."
+  (eprint "Ctrl-C to stop.")
+  (forever (ev/sleep 3600)))
 
 (defn main [& argv]
   (def [path port] (parse-args argv))
   (unless path
     (eprint "usage: clerk-janet <file-or-dir> [--port N]")
     (os/exit 1))
-  (def stop (clerk-serve path :port port))
-  (block-forever)
-  (stop))
+  # Top-level catch: if anything inside crashes the main fiber, we want
+  # the user to see *why* instead of staring at a process that just
+  # vanished. Without this, an uncaught error in clerk-serve (notebook
+  # eval, server bind, watcher start) exits with no breadcrumb.
+  (try
+    (do
+      (def stop (clerk-serve path :port port))
+      (block-forever)
+      (stop))
+    ([err fib]
+      (eprintf "clerk-janet: fatal: %s" err)
+      (debug/stacktrace fib err "")
+      (os/exit 1))))

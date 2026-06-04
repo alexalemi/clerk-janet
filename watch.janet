@@ -85,8 +85,13 @@
     (nil? st)
     (error (string "no such file or directory: " path))
 
+    # Both watch-file and watch-dir call (on-change <path>) — pass it
+    # through directly. (The earlier `|(on-change path)` wrapper here
+    # was a 0-arg short-fn but watch-file calls with 1 arg, so every
+    # save raised an arity error the catch silently swallowed —
+    # producing a server that looked fine but never broadcast updates.)
     (= (st :mode) :file)
-    (watch-file path |(on-change path) :poll-ms poll-ms)
+    (watch-file path on-change :poll-ms poll-ms)
 
     (= (st :mode) :directory)
     (watch-dir path on-change :poll-ms poll-ms)
