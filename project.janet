@@ -9,4 +9,5 @@
 
 (declare-executable
   :name "clerk-janet"
-  :entry "main.janet")
+  :entry "main.janet"
+  :install true)
