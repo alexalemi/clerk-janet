@@ -17,11 +17,31 @@
   env)
 
 (defn- run-form-in-env [form env]
-  "Compile + run a single form in `env`. Returns the value, or throws."
-  (def compiled (compile form env))
-  (if (function? compiled)
-    (compiled)
-    (error (string "compile error: " compiled))))
+  "Evaluate a single form via `run-context` so that `import`/`use`/`require`
+  install bindings into `env`. Returns the form's value, or throws a
+  human-readable error string."
+  (def src (string/format "%n" form))
+  (var emitted false)
+  (def errors @[])
+  (var last-value nil)
+  (run-context
+    {:env env
+     :source "notebook-cell"
+     :chunks (fn [buf _parser]
+               (when (not emitted)
+                 (buffer/push-string buf src)
+                 (set emitted true)))
+     :on-compile-error (fn [msg & _]
+                         (array/push errors (string "compile error: " msg)))
+     :on-parse-error (fn [p & _]
+                       (array/push errors (string "parse error: " (parser/error p))))
+     :on-status (fn [fiber value]
+                  (if (= (fiber/status fiber) :error)
+                    (array/push errors (string value))
+                    (set last-value value)))})
+  (unless (empty? errors)
+    (error (string/join errors "; ")))
+  last-value)
 
 (defn- eval-one-cell [c env]
   (case (c :kind)
