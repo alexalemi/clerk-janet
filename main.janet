@@ -55,10 +55,13 @@
 
 (defn clerk-serve [path &named port]
   (default port 7777)
+  # Resolve the active notebook first — `initial-active` validates the
+  # path and raises a readable error on a missing file, whereas calling
+  # ((os/stat path) :mode) on nil crashes with "expected integer key".
+  (def active (initial-active path))
   (def is-dir (= ((os/stat path) :mode) :directory))
   (printf "clerk-janet: serving %s%s on http://localhost:%d"
           path (if is-dir " (directory mode)" "") port)
-  (def active (initial-active path))
   (def srv (server/make-server :port port
                                :title (string active " — clerk")))
   (def active-box @{:path active})
@@ -84,8 +87,14 @@
     (def a (get args i))
     (cond
       (= a "--port")
-      (do (set port (scan-number (get args (+ i 1))))
-          (+= i 2))
+      (do
+        (def v (get args (+ i 1)))
+        (def p (and v (scan-number v)))
+        (unless p
+          (eprint "clerk-janet: --port requires a number")
+          (os/exit 1))
+        (set port p)
+        (+= i 2))
       (set path a)
       (++ i)))
   [path port])

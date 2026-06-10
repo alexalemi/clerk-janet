@@ -11,6 +11,12 @@
        (string/replace-all "<" "&lt;")
        (string/replace-all ">" "&gt;")))
 
+(defn- attr-escape [s]
+  # For values landing inside a double-quoted HTML attribute. `&`, `<`,
+  # `>` are already handled by html-escape upstream; a literal `"` in a
+  # URL could otherwise close the href attribute early.
+  (string/replace-all "\"" "&quot;" s))
+
 (defn- pp [v]
   (string/format "%p" v))
 
@@ -46,7 +52,7 @@
       ~(* "[" (capture (some (if-not "]" 1))) "]" "("
           (capture (some (if-not ")" 1))) ")")
       (fn [_ text url]
-        (array/push stash (string "<a href=\"" url "\">" text "</a>"))
+        (array/push stash (string "<a href=\"" (attr-escape url) "\">" text "</a>"))
         (string "\0LINK" (- (length stash) 1) "\0"))
       s))
   # Bare URLs — http(s)://... up to whitespace or terminator. Trailing
@@ -67,7 +73,7 @@
             (- n i)))
         (def clean (string/slice url 0 (- (length url) trail-len)))
         (def trail (string/slice url (- (length url) trail-len)))
-        (string "<a href=\"" clean "\">" clean "</a>" trail))
+        (string "<a href=\"" (attr-escape clean) "\">" clean "</a>" trail))
       s))
   # Bold and italic
   (def s

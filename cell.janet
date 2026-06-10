@@ -154,16 +154,15 @@
     (empty? form)       [:expr nil form]
     (let [head (form 0)]
       (cond
-        (or (= head 'def) (= head 'defn))
-        [:define (when (symbol? (form 1)) (form 1)) form]
-
-        (= head 'var)
+        (or (= head 'def) (= head 'defn)
+            (= head 'def-) (= head 'defn-)
+            (= head 'var) (= head 'varfn))
         [:define (when (symbol? (form 1)) (form 1)) form]
 
         (or (= head 'import) (= head 'use) (= head 'require))
         [:meta nil form]
 
-        (= head 'defmacro)
+        (or (= head 'defmacro) (= head 'defmacro-))
         [:syntax (when (symbol? (form 1)) (form 1)) form]
 
         # default: expression

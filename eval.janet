@@ -49,20 +49,27 @@
     {:cell c :value nil :error nil :stdout "" :stderr ""}
 
     # All other kinds: try to run the rewrite, then fetch the binding
-    # if we synthesized one. Capture stdout via `with-dyns` redirected
-    # to a buffer.
+    # if we synthesized one. Capture stdout/stderr by installing the
+    # buffers as dynamic bindings *in the cell env itself* — the cell
+    # runs in a fresh fiber (via `run-context`) whose dyn lookups go
+    # through `env`, so `with-dyns` on *this* fiber would never be seen.
     (let [out-buf @""
           err-buf @""]
-      (def res
-        (with-dyns [:out out-buf :err err-buf]
-          (protect (run-form-in-env (c :rewrite) env))))
+      (put env :out out-buf)
+      (put env :err err-buf)
+      (def res (protect (run-form-in-env (c :rewrite) env)))
+      (put env :out nil)
+      (put env :err nil)
       (def [ok? val] res)
       (if ok?
-        # Success — fetch the named binding for its value
+        # Success — fetch the named binding for its value.
+        # `def` bindings store the value under :value; `var` bindings
+        # store a one-element boxed array under :ref.
         (let [v (cond
                   (nil? (c :name)) nil
                   (let [b (get env (c :name))]
-                    (when b (b :value))))]
+                    (when b
+                      (if-let [ref (b :ref)] (ref 0) (b :value)))))]
           {:cell c :value v :error nil
            :stdout (string out-buf)
            :stderr (string err-buf)})
@@ -72,7 +79,7 @@
          :stderr (string err-buf)}))))
 
 (defn eval-notebook [path]
-  "Read the notebook at `path` and evaluate each cell. Returns a tuple
+  "Read the notebook at `path` and evaluate each cell. Returns an array
   of cell-results."
   (def cells (cell/read-notebook path))
   (def env (new-env))

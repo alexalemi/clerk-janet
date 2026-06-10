@@ -17,10 +17,13 @@
   (try (do (:write conn bytes) true)
        ([err] false)))
 
+(def- reason-phrases {200 "OK" 404 "Not Found"})
+
 (defn- write-http [conn status content-type body]
   (def body (if (buffer? body) body (string body)))
-  (def head (string/format "HTTP/1.1 %d OK\r\nContent-Type: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
-                           status content-type (length body)))
+  (def reason (get reason-phrases status "OK"))
+  (def head (string/format "HTTP/1.1 %d %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
+                           status reason content-type (length body)))
   (write-bytes conn head)
   (write-bytes conn body))
 
@@ -90,7 +93,8 @@
           (ev/sleep 30)
           (unless (write-bytes conn ":\n\n")
             (unregister id)
-            (break))))
+            (break)))
+        (try (:close conn) ([_] nil)))
 
       # Not found
       (do (write-http conn 404 "text/plain" "not found")

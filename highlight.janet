@@ -36,10 +36,18 @@
 # input. Whitespace is :ws, comments are :com, etc.
 (def- token-peg
   (peg/compile
-    ~{:main (any (+ :comment :string :paren :keyword :number :symbol :ws :other))
+    ~{:main (any (+ :comment :long-string :string :paren :keyword :number :symbol :ws :other))
 
       # Line comment from `#` to end of line (or eof)
       :comment (* (constant :com) '(* "#" (any (if-not "\n" 1))))
+
+      # Long string: N backticks ... N backticks (backmatch pairs the
+      # delimiters, so ` inside `` ... `` is fine). The `%` accumulator
+      # folds the three captures back into one text span.
+      :long-string (* (constant :str)
+                      (% (* (capture (some "`") :delim)
+                            (capture (any (if-not (backmatch :delim) 1)))
+                            (capture (backmatch :delim)))))
 
       # Double-quoted string with simple escape handling
       :string (* (constant :str)

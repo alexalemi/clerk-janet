@@ -7,10 +7,6 @@
       (when s [(s :modified) (s :size)]))
     ([_] nil)))
 
-(defn- janet-file? [path]
-  (and (string/has-suffix? ".janet" path)
-       (= ((or (os/stat path) {}) :mode) :file)))
-
 (defn- walk-janet-files [root]
   "Recursively collect .janet file paths under root."
   (def out @[])
